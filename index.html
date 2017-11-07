@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta charset="utf-8">
+	
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>LV Dashboard</title>
+		<!--
+		<link rel="icon" href="img/favicon.ico">
+		-->
+		
+		<link href="../../../css/bootstrap.min.css" rel="stylesheet">
+		<link href="../../../css/style.css" rel="stylesheet">
+		<script src='sort.js'></script>
+		<style>
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.row {
+  overflow-y: scroll !important;
+  height: 100%;
+}
+td, th {
+    #border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+}
+
+th {
+  cursor: pointer;
+}
+
+
+.page-header {
+color: black;
+}
+
+ .table-striped, .col-md-12 {
+  width: 100% !important;
+  overflow-y: scroll !important;
+  height: 400px !important;
+}
+
+.page-header {
+  margin: 0 !important;
+}
+
+.table-responsive {
+  background: white;
+}
+
+table {
+border-top: solid 3px RGB(205, 209, 212) !important;
+}
+
+</style>
+		<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+		<!--[if lt IE 9]>
+		<script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+		<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+		<![endif]-->
+		<script>
+			var selectedServer;
+			function $_GET(param) {
+				var vars = {};
+				window.location.href.replace( location.hash, '' ).replace( 
+					/[?&]+([^=&]+)=?([^&]*)?/gi, // regexp
+					function( m, key, value ) { // callback
+						vars[key] = value !== undefined ? value : '';
+					}
+				);
+
+				if ( param ) {
+					return vars[param] ? vars[param] : null;	
+				}
+				return vars;
+			}
+
+			//var $_GET = $_GET(),
+    		//selectedServer = $_GET['server'];
+    		//console.log(selectedServer);
+    		/*
+    		window.onload = function() {
+			  
+				//var splitText = "Server - " + selectedServer;
+				//console.log(splitText);
+				//document.getElementById("pageTitle").innerHTML=splitText;
+			}
+			*/
+
+		</script>
+
+	</head>
+	<body>
+
+	 <div id="pageView"></div>
+	 
+		<div class="main">
+			<div class="container-fluid">
+				<div class="row">
+				
+					
+				
+					
+				</div>
+			</div>
+		</div>
+
+
+		<!-- Required LiveView libraries -->
+		<script src="/lv/api/lib/jquery.min.js"></script>
+		<script src="/lv/api/lib/atmosphere.min.js"></script>
+		<script src="/lv/api/liveview.min.js"></script>
+
+		<!-- Supplemental libraries for visualizations and dashboard UI -->
+		<script src="../../../lib/bootstrap.min.js"></script>
+		
+		
+
+		<!-- Our application code -->
+		<script src="../../../js/TupleStore.js"></script>
+		<script src="../../../js/LiveViewQueryService.js"></script>
+		<script src="../../../js/views/PageListView.js"></script>
+		<script src="../../../js/views/PageView.js"></script>
+		<script src="../../../js/views/TableView.js"></script>
+		
+		<script>
+		var query = 'SELECT * from lv_Shipment_State';
+		var urlParams = new urlParams_();
+		var title;
+                  
+               if (urlParams.get('EventType')) {
+                query = "SELECT ResNbr, ShpNbr, Path, EventTimestamp, ShipByDate from lv_Shipment_State where EventType = '" + urlParams.get('EventType') + "' AND Status = 'purple'"; 
+             }
+              
+              if (urlParams.get('EventType') && urlParams.get('Path')) {
+               query = "SELECT ResNbr, ShpNbr, EventTimestamp, ShipByDate FROM lv_Shipment_State where EventType = '" + urlParams.get('EventType') + "' AND Path = '" + urlParams.get('Path') + "' AND Status != 'green'";
+   
+              }
+              
+               query = query + ' ORDER BY EventTimestamp asc limit 3000';
+              console.log('query ' + query);
+              function urlParams_() {
+                this.has = function(param) {
+                  return getUrlParameter(param) ?  true : false;
+                }
+
+                this.get = function(param) {
+                  return getUrlParameter(param);
+                }
+              }
+
+              function getUrlParameter(sParam) {
+                var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+                  sURLVariables = sPageURL.split('&'),
+                  sParameterName,
+                  i;
+
+                for (i = 0; i < sURLVariables.length; i++) {
+                  sParameterName = sURLVariables[i].split('=');
+
+                  if (sParameterName[0] === sParam) {
+                    return sParameterName[1] === undefined ? true : sParameterName[1];
+                  }
+                }
+              };
+              </script>
+		<script src="app.model.js"></script>
+
+		<script>
+			//App setup code
+			// *run in an IIFE so variables don't get set on window
+			
+			(function($){
+				var pageListView, pageView, currentPageModel, pageId;
+
+				//use the url hash value to load the corresponding page in the pages model as the current page,
+				// else default to the first page in the pages model
+				
+
+				//setup the page and page list views
+				//pageListView = new PageListView($('#pageList'), appModel.pages[0], {});
+				//pageListView.selectPage(pageId);
+				
+			   
+        // end
+       
+				pageView = new PageView($('#pageView'), appModel.pages.inventory, {});
+
+				
+			})(jQuery);
+		</script>
+<script>
+  var LastUpdated = null;
+  
+    LiveView.connect({url: '/lv/client/'}).then(
+      function(connection){  
+        connection.subscribe(
+           new LiveView.Query('Select EventTimestamp from lv_Shipment_State'),
+              {
+                  //The following if statement creates the unneeded blue lines that we first saw. Consider getting rid of them instead of just hiding them by coloring them white (which is really bad practice)
+                  onSnapshotStart: function(result){
+                   // alert("Execting liveview data");
+                    //console.log("Executing liveview data");
+              },   
+              onInsert: function(result){
+              
+      
+              LastUpdated = result.tuple.fieldMap.EventTimestamp;
+              
+              
+              },
+              onSnapshotEnd: function(event){
+             
+              var date = new Date(LastUpdated);
+              
+              var hours = date.getHours();
+          var minutes = date.getMinutes();
+      var ampm = hours >= 12 ? 'pm' : 'am';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // the hour '0' should be '12'
+      minutes = minutes < 10 ? '0'+minutes : minutes;
+      var strTime = hours + ':' + minutes + ' ' + ampm;
+      //return date.getMonth()+1 + "/" + date.getDate() + "/" + date.getFullYear() + ",  " + strTime + " ET";
+              $('#last-updated').text('Queried ' + (parseInt(date.getMonth()) + 1).toString() + "/" + date.getDate() + "/" + date.getFullYear() + ",  " + strTime + " ET");
+              }
+      });
+      }
+    );
+
+   if (urlParams.get('Path')) {
+    $('.page-header').html("<h3>" + urlParams.get('Path') + " Shipments that have been in <i>" + urlParams.get('EventTypeTitle') + "</i> step for longer than " + urlParams.get('SLT') + "</h3><h6 id='last-updated'>Queried</h6><h6 id='shipments'><span id='shipmentsCount'>Total Shipments :</span></h6><h6 id='clear'>&nbsp</h6>");
+   } else {
+    $('.page-header').html("<h3>Shipments that have been in <i>" + urlParams.get('EventTypeTitle') + "</i> step for longer than " + urlParams.get('SLT') + "</h3><h6 id='last-updated'>Queried</h6><h6 id='shipments'><span id='shipmentsCount'>Total Shipments :</span></h6><h6 id='clear'>&nbsp</h6>");
+    ///$('.page-header').append('<h4>fdfsf</h4'>');
+  }
+</script>
+<style>
+ #last-updated {
+ 	
+ 	width: 50%;
+ 	float: left;
+ }		
+ 
+ #shipments {
+ 	background: blue;
+ 	width: 50%;
+ 	float: left;
+align: right;
+padding-right: 10px;
+
+ }
+ 
+ #shipmentsCount {
+ position: absolute;
+ 	right: 10px;
+ }
+ #clear {
+ width: 100%;
+ 	#float: clear;
+ 	height: 20px;
+ 	line-height: 3px;
+ }
+.table > thead > tr > th {
+	vertical-align: top !important;
+}
+	</body>
+</html>
