@@ -97,10 +97,8 @@ var TableView = (function($){
       this.tableHead.append('<tr>' + cells.join('') + '</tr>');
       
       this.compareTable = [];
-      this.dtable = $('#dataTable').dataTable(
+      this.dtable = $('#dataTable').dataTable(scrollY: "200px", scrollCollapse: true,
       { "dom": '<"top"lfip>rt<"clear">', sPaginationType: "full_numbers", "pageLength": 7, "data": this.compareTable, "columns": columns });   
-   // $("#dataTable_info").detach().prependTo('#_wrapper');
-//$("#dataTable_paginate").detach().prependTo('#dataTable_wrapper');
     },
     handleDataAdded: function(tuple){
       //An array to store the <td> elements that will be used in the data row
