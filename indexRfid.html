@@ -1,0 +1,855 @@
+  <!DOCTYPE html>
+
+  <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    
+  <script src="/lv-web/api/lib/jquery.min.js"></script>
+  <script src="/lv-web/api/lib/jquery.atmosphere.min.js"></script>
+  <script src="/lv-web/api/liveview.min.js"></script>
+  <!--<script src="../../lv/api/lib/jquery.min.js"></script>
+  <script src="../../lv/api/lib/atmosphere.min.js"></script>
+  <script src="../../lv/api/liveview.min.js"></script>-->
+  <script src="js/app.model.js"></script>
+ 
+
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+  <!-- Latest compiled and minified JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"> </script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.3.6/proj4.js"></script>
+  <script src="https://code.highcharts.com/maps/highmaps.js"></script>
+  <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
+  <!--<script src="https://code.highcharts.com/mapdata/countries/us/us-all.js"></script>-->
+  <script src="https://code.highcharts.com/mapdata/countries/us/custom/us-all-territories.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.min.js"></script>
+  
+  <style>
+    li.active > a{
+    background: white !important;
+    font-weight: bold !important;
+    color: black !important;
+}
+  </style>
+  
+  <script>
+    var status_;
+    window.onload = function() {
+      //alert(sessionStorage.getItem("status"));
+      var urlParams = new urlParams_()
+      
+      // status      
+     
+      var status = urlParams.has('status') ? urlParams.get('status') : "all-warnings";      
+      var menuIds = ['#all-statuses', '#all-warnings', '#green', '#yellow', '#red'];
+      status_ = status;
+       
+      highlightMenu('#' + status, menuIds);      
+      $("#status-dropdown").html($('#' + status).text() + ' <span class="caret"></span>');
+      
+      showHideSerties(status);     
+     
+      // business div 
+      var businessDiv = urlParams.has('store') ? urlParams.get('store') : "all";        
+      menuIds = ['#all', '#Macys', '#Bloomingdales', '#BOS'];
+      
+      highlightMenu('#' + businessDiv, menuIds);
+      $("#business-div-dropdown").html($('#' + businessDiv).text() + ' <span class="caret"></span>');
+      $("#store-number").attr('disabled', businessDiv === 'all');
+      
+      if (businessDiv != 'all') $("#store-number").val('');
+      
+      $(".select2-container").tooltip({
+        title: function() { return (businessDiv === 'all') ? "Select Business Division" : null; }
+      });
+    }
+    
+    function showHideSerties(status) {
+      console.log("Inside show hide serties : " + status)
+      if ( chart ) {
+        console.log("setting servies visibility");
+        chart.series[2].setVisible(['#all-statuses', '#green'].indexOf(status) == -1 ? false : true);
+        chart.series[3].setVisible(['#all-warnings', '#yellow'].indexOf(status) == -1 ? false : true);
+        chart.series[4].setVisible(['#all-warnings', '#red'].indexOf(status) == -1 ? false : true);
+      }
+    }
+    
+    function openServerStatusUrl() { 
+      var store_no = $('#store-number').val();
+      
+        if($('#store-number').val() == "") {
+          alert('Enter store number');
+          $('#store-number').focus();
+          return;
+        }     
+            
+      var series = [];
+      var host_name = null;
+      var storeNum = null;
+      
+      series = series.concat(chart.series[2].data, chart.series[3].data, chart.series[4].data);
+      
+      series.forEach(function(item) {
+        if($('#store-number').val() == item.storeNum) {
+          storeNum = item.storeNum;
+          host_name = item.source_host;   
+          //alert(host_name);       
+        }
+      });
+      
+      if(host_name == null) {
+        alert("Store with store number '" + store_no + "' does not exists.");
+        $('#store-number').focus();
+          return;
+      }
+      
+        window.open('index.html?' + host_name + "#serverdetailsview&store-no=" + storeNum, '_blank');
+        //window.open('index.html?' + event.point.source_host + "#serverdetailsview&store-no=" + event.point.storeNum, '_blank');
+    }
+    
+    function highlightMenu(menuId, menuIds) {
+      menuIds.forEach(function(item) { 
+            
+        $(item).removeClass("active");
+      });
+      
+      $(menuId).addClass('active');
+      
+    }
+    
+    function setStatus(status) {  
+      sessionStorage.setItem("status", status);      
+      window.location = getUrl();
+    }
+    
+    function setBusinessDiv(businessDiv) {    
+      sessionStorage.setItem("businessDiv", businessDiv);      
+      window.location = getUrl();
+    }
+    
+    function getUrl() {          
+      var status = sessionStorage.getItem("status") ? "?status=" + sessionStorage.getItem("status") : "";
+      var businessDiv = sessionStorage.getItem("businessDiv");
+     
+      if(status == "") {      
+        businessDiv = sessionStorage.getItem("businessDiv") ? "?store=" + sessionStorage.getItem("businessDiv") : '';
+      } else {
+        businessDiv = sessionStorage.getItem("businessDiv") ? "&store=" + sessionStorage.getItem("businessDiv") : '';
+      }      
+     
+      return window.location.href.split('?')[0] + status + businessDiv;
+    }
+    
+    
+    function urlParams_() {
+      this.has = function(param) {
+        return getUrlParameter(param) ?  true : false;
+      }
+      
+      this.get = function(param) {
+        return getUrlParameter(param);
+      }
+    }
+    
+    function getStatusQuery(status) {     
+       if(status == 'all-statuses') return ''; 
+       return { green: "status = 'green'", yellow: "status = 'yellow'",
+                red: "status = 'red'", 'all-warnings': "status = 'yellow' or status = 'red'"
+              }[status];
+    }
+    
+    function getBusinessDivQuery(businessDiv) { 
+      return "store = '" & businessDiv & "'";
+    }
+    
+    function getQuery() {
+      var queryParams = window.location.href.split('?');
+      
+      var urlParams = new urlParams_() ;//new URLSearchParams(window.location.search)       
+       
+      if(queryParams.length == 1) {
+        return "select * from lv_RFID_Map_Vis where " + getStatusQuery('all-warnings');
+      } 
+      
+      var query = "select * from lv_RFID_Map_Vis";
+      
+      if (urlParams.has('status')) {
+        // status and store specified
+        if(urlParams.has('store')) {         
+          if (urlParams.get('status') == 'all-statuses') {
+            // localhost:3000/?status=all-statuses&store=Macys
+            if (urlParams.get('store') == 'all') {
+            query = "select * from lv_RFID_Map_Vis";
+          } else {
+            query = "select * from lv_RFID_Map_Vis where store = '" + urlParams.get('store') + "'";
+          }          
+          } else {
+            // localhost:3000/?status=all-warnings&store=Macys
+            query = "select * from lv_RFID_Map_Vis where " + getStatusQuery(urlParams.get('status'));
+            if (urlParams.get('store') == 'all') {
+            query = query;
+          } else {
+            query = query + " and store = '" + urlParams.get('store') + "'";
+          }
+            
+          }
+        } else {         
+          if (urlParams.get('status') == 'all-statuses') {
+             // localhost:3000/?status=all-statuses
+            query = "select * from lv_RFID_Map_Vis";             
+          } else {
+            query = "select * from lv_RFID_Map_Vis where " + getStatusQuery(urlParams.get('status'));           
+          }          
+        }
+      } else {
+        if(urlParams.has('store')) {
+          if (urlParams.get('store') == 'all') {
+            query = "select * from lv_RFID_Map_Vis where " + getStatusQuery(urlParams.get('all-warnings'));
+          } else {
+            query = "select * from lv_RFID_Map_Vis where store = '" + urlParams.get('store') + "' and "  + getStatusQuery(urlParams.get('all-warnings'));
+          }
+        } 
+      }
+      
+      return query;
+    }
+    
+  </script>
+  <style>
+    body{
+      background-color: #ecf0f5;
+    }
+
+  .main {
+    padding: 5px;
+    padding-left: 15px;
+    min-height: 250px;
+    height: 100%;
+    overflow: auto;
+    background-color: #ecf0f5;
+  }
+
+  .container-fluid {
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+    border-bottom: 1px solid #eee;
+
+  }
+  .page-header {
+    margin-top: 0;
+    font-size: 22px;
+    font-family: 'Source Sans Pro',sans-serif;
+    bottom: -25;
+    font-weight: 500;
+    line-height: 1.1;
+  }
+  .toolbar {
+    width: 700px;
+    height: 100px;
+    /* background: RGB(240, 240, 240); */
+    line-height: 48px;
+    position: relative;
+    bottom: -10;
+  }
+  
+   #container {
+      height: 600px;
+      min-width: 310px;
+      max-width: 900px;
+      margin: 0 auto;
+      top: -10;
+  }
+  .loading {
+      margin-top: 10em;
+      text-align: center;
+      color: gray;
+  }
+  
+  .btn {
+   min-width: 120px;
+    margin-right: 50px;
+    height: 24px;
+    padding: 0 6px 0 6px;
+  }
+  
+  .dropdown-toggle {
+     background: white !important;
+    color: black !important;
+  }
+  
+   button.btn.dropdown-toggle:hover, button.btn[aria-expanded="true"] { 
+    background: RGB(240, 240, 240) !important;
+    color: black !important;
+   }
+ 
+
+  .go {
+    width: 40px;
+    min-width: 40px;
+    height: 27px;
+    position: relative;
+    left: 2px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+ 
+  .store-hash {
+    width: 60px;
+    min-width: 60px;
+    margin-left: 40px;
+  }
+ 
+  .filters-container {
+    width: 525px;
+    height: 40px;
+    /* background: lightgrey; */
+    position: relative;
+    bottom: 1px;
+
+    padding: 0;
+    line-height: 40px;
+  }
+
+  .filters-container-bus {
+    width: 290px;
+    height: 40px;
+    /* background: #EEECEC; */
+    position: relative;
+    bottom: 1px;
+    top:2px;
+    padding: 0;
+    line-height: 40px;
+  }
+
+  .filters-container-status {
+    width: 250px;
+    height: 40px;
+    /* background: #EEECEC; */
+    position: relative;
+    bottom: -1px;
+    top:-5px;
+    right: -25px;
+    padding: 0;
+    float: left;
+    line-height: 40px;
+  }
+
+  .filters-container-store {
+    width: 275px;
+    height: 40px;
+    /* background: #EEECEC; */
+    position: relative;
+    bottom: -1px;
+    top:-5px;
+    padding: 0;
+    float: right;
+    line-height: 40px;
+  }
+ 
+  .go-to-store-container {
+    right: 610px;
+    width: 290px;  
+  }
+ 
+  .business-div {
+    margin-right: 20px;
+  }
+ 
+  input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;  
+}
+
+   
+  body {
+    padding-top: 1%;
+  }
+  </style>
+  </head>
+
+  <body bgcolor="white">   
+  <div class="main">
+  <div class="container-fluid">
+  <h1 class="page-header">RFID Infrastructure Monitoring</h1>
+  <center>
+  <div class="toolbar">
+      <div class="filters-container-bus">
+          <span>Business Div</span>
+          <div class="btn-group">
+            <button id="business-div-dropdown" type="button" class="btn btn-sm btn-primary dropdown-toggle  business-div" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="font-size: 13px;text-align: left;">
+              Business Div <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+              <li id="all"><a href="#" onClick="setBusinessDiv('all')">All</a></li>
+              <li id="Macys"><a href="#" onClick="setBusinessDiv('Macys')">Macy's</a></li>
+              <li id="Bloomingdales"><a href="#" onClick="setBusinessDiv('Bloomingdales')">Bloomingdales</a></li>
+              <li id="BOS"><a href="#" onClick="setBusinessDiv('BOS')">BOS</a></li>
+            </ul>
+          </div>
+      
+      </div>
+  
+  <div class="filters-container">
+  <div class="filters-container-status">
+  <span>Filter Map</span>
+  <div class="btn-group">
+    
+    <button id="status-dropdown" type="button" class="btn btn-sm btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="font-size: 13px;text-align: left;">
+      Status <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu">
+      <li id="all-statuses"><a href="#" onClick="setStatus('all-statuses')">All Statuses</a></li>
+      <li id="all-warnings"><a href="#" onClick="setStatus('all-warnings')">All Warnings</a></li>      
+      <li id="green"><a href="#" onClick="setStatus('green')">Green</a></li>
+      <li id="yellow"><a href="#" onClick="setStatus('yellow')">Yellow</a></li>
+      <li id="red"><a href="#" onClick="setStatus('red')">Red</a></li>
+    </ul>
+  </div>
+  </div>
+  <div class="filters-container-store">
+  <span>Go to Store #<span>
+      <select id="store-number"  class="form-control" style="width:80px;display: inline-block"></select>
+      <script>
+          //var stores = [];
+         
+            $('select').select2();
+            $('#store-number').select2({ placeholder: "Select Business Division"});
+           
+           
+        
+          function updateStoresDropdown(stores) {
+            var exists = false;
+    
+            stores.forEach(function (store) {
+              exists = false;
+    
+              $('#store-number  option').each(function () {
+                if (store.storeNum === $(this).text()) exists = true;
+              });
+    
+              if (!exists) {
+                $('#store-number').append("<option id=" + store.storeNum + ">" + store.storeNum + "</option>");
+              }
+            })
+            
+            $("#store-number").val('');
+            
+          }
+        </script>
+      <button type="button"
+              class="btn btn-sm btn-primary go" 
+              onClick="openServerStatusUrl();"
+              style="font-size: 13px;">
+              Go
+      </button> 
+  </div>
+  </div>
+  </div>
+  </center>
+  <div id="container"></div>
+
+
+  <!-- Application JS Files  THis is also what connects liveview to the map page -->
+
+      <script type='text/javascript'>
+      if ( navigator.userAgent.indexOf('Trident') != -1)  {       
+        document.getElementById('store-number').style.top = "5px";
+      }
+      
+      mycondition = true;
+      var titleOutputted = false;
+        String.prototype.replaceAll = function(search, replacement) {
+          var target = this;
+          return target.replace(new RegExp(search, 'g'), replacement);
+        };
+      //runmap();
+      //From what I can tell, this basically returns the MAP Name. So getURLParameter will equal the map name. EG for FIL, it will equal FILHealthCheck
+      var getUrlParameter = function getUrlParameter(sParam) {
+      var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+              sURLVariables = sPageURL.split('&'),
+              sParameterName,
+              i;
+
+          for (i = 0; i < sURLVariables.length; i++) {
+              sParameterName = sURLVariables[i].split('=');
+
+              if (sParameterName[0] === sParam) {
+                    return sParameterName[1] === undefined ? true : sParameterName[1];
+              }
+          }
+    };
+      
+
+  var myData = "[";
+  var normalData = "[";
+  var warnData = "[";
+  var errorData = "[";
+  var queryString_ = getQuery();
+  //console.log("query " + queryString_);
+      var jsonifiedData = "";
+      LiveView.connect({url: '/lv/client/'}).then(
+            function(connection){
+            //console.log("connected");
+              //Issue Query based on whether user clicked any buttons.
+              var URL = location.search;
+              var queryString = "";
+              
+              if(URL.indexOf("Macys") !== -1) {  //has Macys in the URL
+                queryString = "SELECT * FROM lv_RFID_Map_Vis WHERE store = 'Macys'";
+              }
+              else if(URL.indexOf("Bloomingdales") !== -1) {  //has Bloomingdales in the URL
+                queryString = "SELECT * FROM lv_RFID_Map_Vis WHERE store = 'Bloomingdales'";
+              }
+              else if(URL.indexOf("BOS") !== -1) {  //has BOS in the URL
+                queryString = "SELECT * FROM lv_RFID_Map_Vis WHERE store = 'BOS'";
+              }
+              else if(URL.indexOf("All") !== -1) {  //has all in url
+              //console.log('xxx all');
+                queryString = "SELECT * FROM lv_RFID_Map_Vis";
+              }
+              else {  //nothing was specified
+               //console.log('xxx all');
+                queryString = "SELECT * FROM lv_RFID_Map_Vis";
+              } 
+              
+             queryString = queryString_;
+              
+              connection.subscribe(
+                new LiveView.Query(queryString),
+                {
+                  //The following if statement creates the unneeded blue lines that we first saw. Consider getting rid of them instead of just hiding them by coloring them white (which is really bad practice)
+                  onSnapshotStart: function(result){
+                   // alert("Execting liveview data");
+                    //console.log("Executing liveview data");
+                  },
+                  onInsert: function(result){
+                    //console.log(result.tuple.fieldMap.store);
+
+                    //Separating incoming stream into two datasets to display with their respective warning/error colors:
+                    if(result.tuple.fieldMap.TrueVUEStatus === 'Up') {
+                      result.tuple.fieldMap.trueVUEStatus = 'TrueVUE UP';
+                    }
+                    
+                    if(result.tuple.fieldMap.TrueVUEStatus === 'Down') {
+                      result.tuple.fieldMap.trueVUEStatus = 'TrueVUE DOWN';
+                    }
+                    
+                    if(result.tuple.fieldMap.ServerStatus === 'Up') {
+                      result.tuple.fieldMap.serverStatus = 'Server UP'; 
+                    }
+                    
+                    if(result.tuple.fieldMap.ServerStatus === 'Down') {
+                      result.tuple.fieldMap.serverStatus = 'SERVER NOT RESPONDING'; 
+                    }                   
+                    
+                    if(result.tuple.fieldMap.status == 'green'){
+                      //normal data
+                      //console.log("normal data " + result.tuple.fieldMap.processorQueueLength);
+                      normalData += JSON.stringify(result.tuple.fieldMap) + ",";
+                    } else if(result.tuple.fieldMap.status == 'yellow') {  //WARN data
+                      warnData += JSON.stringify(result.tuple.fieldMap) + ",";
+                    }  else  { 
+                      errorData += JSON.stringify(result.tuple.fieldMap) + ",";
+                    }
+                    
+                    myData += JSON.stringify(result.tuple.fieldMap) + ",";
+                    
+                  },
+                  onSnapshotEnd: function(event){
+                      myData = myData == "[" ? "[]" : myData; 
+                      var cleanData = myData.substring(0, myData.lastIndexOf(',')) + ']';
+                      //highcharts wants Latitude to be lat and Longitude to be lon, so Imma replace it here:
+                      var cleanData = cleanData.replaceAll("\"latitude\"", "\"lat\"");
+                      var cleanData = cleanData.replaceAll("\"longitude\"", "\"lon\"");
+                      // console.log(cleanData);
+                      var jsonifiedData = JSON.parse(cleanData);
+                      
+                      //normalData = normalData == "[" ? "[]" : normalData; 
+                      //console.log("noraml " + normalData);
+                      // normal data
+                      var cleanNormalData = normalData.substring(0, normalData.lastIndexOf(',')) + ']';
+                      //highcharts wants Latitude to be lat and Longitude to be lon, so Imma replace it here:
+                      var cleanNormalData = cleanNormalData.replaceAll("\"latitude\"", "\"lat\"");
+                      var cleanNormalData = cleanNormalData.replaceAll("\"longitude\"", "\"lon\"");
+                      cleanNormalData = cleanNormalData == "]" ? "[]" : cleanNormalData; 
+                      //console.log("noraml " + cleanNormalData);
+                      var jsonifiedNormalData = JSON.parse(cleanNormalData);
+                      //console.log("jsonifiedNormalData " + JSON.stringify(jsonifiedNormalData));
+                      
+                      warnData = warnData == "[" ? "[]" : warnData;
+                      var cleanWarnData = warnData.substring(0, warnData.lastIndexOf(',')) + ']';
+                      //console.log("Warn data" + warnData);
+                      //highcharts wants Latitude to be lat and Longitude to be lon, so Imma replace it here:
+                      var cleanWarnData = cleanWarnData.replaceAll("\"latitude\"", "\"lat\"");
+                      var cleanWarnData = cleanWarnData.replaceAll("\"longitude\"", "\"lon\"");
+                      //console.log(cleanWarnData);
+                      cleanWarnData = cleanWarnData == "]" ? "[]" : cleanWarnData; 
+                      var jsonifiedWarnData = JSON.parse(cleanWarnData);
+                      
+                      errorData = errorData == "[" ? "[]" : errorData;
+                      var cleanErrorData = errorData.substring(0, errorData.lastIndexOf(',')) + ']';
+                      //highcharts wants Latitude to be lat and Longitude to be lon, so Imma replace it here:
+                      var cleanErrorData = cleanErrorData.replaceAll("\"latitude\"", "\"lat\"");
+                      var cleanErrorData = cleanErrorData.replaceAll("\"longitude\"", "\"lon\"");
+                      cleanErrorData = cleanErrorData == "]" ? "[]" : cleanErrorData; 
+                      var jsonifiedErrorData = JSON.parse(cleanErrorData);
+                      
+            for(var idx = 0; idx < jsonifiedNormalData.length; idx++) {
+            if(jsonifiedNormalData[idx].lon) {
+            if(jsonifiedNormalData[idx].serverIP === "11.138.200.29") {
+              console.log('fdf ' + jsonifiedNormalData[idx].lat + '/' + jsonifiedNormalData[idx].lon);
+            }
+            if(jsonifiedNormalData[idx].lon.indexOf('144') > -1 && jsonifiedNormalData[idx].source_host == 'ME468ASRFI02') {
+              //21.969756(LAT)/-159.378687(LON)
+              jsonifiedNormalData[idx].lat = 65.84;
+              jsonifiedNormalData[idx].lon = -193.17;
+              console.log(data[idx]);
+              
+              }
+              }
+            }
+
+                      var sampledatapoint = JSON.parse('[{"city": "Meow","Cities":"Kitty","PostalCode": 34323,"serverName": "ME629ASRFI21","Test": "MyTest","debugCount": 2342,"errCount": 52,"lat": 41.21454,"lon": -81.751723}]');
+                      var stores = stores || [];
+                      runmap(jsonifiedNormalData, jsonifiedWarnData, jsonifiedErrorData);
+                      updateStoresDropdown(stores.concat(jsonifiedNormalData, jsonifiedNormalData, jsonifiedErrorData));
+                  },
+
+                  //Does this even get triggered?
+                  onUpdate: function(event){
+                         //console.log('Query ' + event.subscription.id + ' updated data for tuple ' + event.tuple.id);
+                         //console.log('The updated tuple data is:');
+                         //console.log(event.tuple.fieldMap);
+                         location.reload();
+                  }
+                }
+              );
+            }
+          );
+      //console.log(cleanData);
+      //return cleanData;
+     
+
+  //    } ); 
+
+  //This will contain the data
+  var data = [];
+  var dataTwo = "[";
+  //console.log("BLEH");
+  var H = Highcharts,
+      map = H.maps['countries/us/custom/us-all-territories'],
+      chart;
+  
+  var areasToIgnore = ['Saint John', 'Saipan', 'Rota', 'Western',
+                          'Saint Croix', 'Eastern', 'Saint Thomas', 'Tinian'];
+      var idxToIgnore = [];
+     
+     map.features.forEach(function(item, index) {
+      if(item.type == 'Feature') {
+        if(areasToIgnore.indexOf(item.properties.name) != -1) {
+          idxToIgnore.push(index);
+        }
+      }
+     });
+     
+     idxToIgnore.forEach(function(idx) {
+      delete map.features[idx];
+     });
+     
+     map.features.forEach(function(item, index) {
+      if(item.type == 'Feature') {
+        if(item.properties['hc-group'] == '__separator_lines__') {
+          delete item.geometry.coordinates[7];
+          delete item.geometry.coordinates[6];
+          delete item.geometry.coordinates[5];
+          delete item.geometry.coordinates[4];
+          delete item.geometry.coordinates[3];
+          delete item.geometry.coordinates[2];
+          delete item.geometry.coordinates[1];
+          
+          item.geometry.coordinates[0][0][0] = -907;
+          item.geometry.coordinates[0][0][1] = 5488;         
+        }
+        
+        if(item.id === 'GU.3605') {
+          for(idx = 0; idx < item.geometry.coordinates[0].length; idx++) {
+            item.geometry.coordinates[0][idx][0] = item.geometry.coordinates[0][idx][0] - 6600;
+            item.geometry.coordinates[0][idx][1] = item.geometry.coordinates[0][idx][1] + 1500;
+          }
+        }
+      }
+     });
+
+     runmap([],[],[]);
+  // Add series with state capital bubbles
+  function runmap(normaljson, warnjson, errorjson) {
+      var sampledatapoint = JSON.parse('[{"city": "Meow","Cities":"Kitty","PostalCode": 34323,"serverName": "ME629ASRFI21","Test": "MyTest","debugCount": 2342,"errCount": 52,"lat": 41.21454,"lon": -81.751723}]');
+      chart = Highcharts.mapChart('container', {
+
+          title: {
+              text: ''
+          },
+
+          //This enables the zooming functionality
+          mapNavigation: {
+              enabled: true
+          },
+          credits: {
+      enabled: false
+  },
+          tooltip: {
+              pointFormat:
+                  'Host: {point.source_host}<br>' +
+                  'IP: {point.serverIP}<br>' +
+                  '{point.trueVUEStatus}<br>' +
+                  '{point.serverStatus}<br>' 
+                  //'Queue Length: {point.processorQueueLength}<br>' +
+                  //'Avaiable Mem: {point.availableMBytes}<br>' +
+                  //'Processor Time: {point.processorTime}<br>' +
+                  //'Pool Paged Bytes: {point.poolPagedBytes}<br>'
+          },
+
+          xAxis: {
+              crosshair: {
+                  zIndex: 5,
+                  dashStyle: 'dot',
+                  snap: false,
+                  color: 'gray'
+              }
+          },
+
+          yAxis: {
+              crosshair: {
+                  zIndex: 5,
+                  dashStyle: 'dot',
+                  snap: false,
+                  color: 'gray'
+              }
+          },
+
+          plotOptions: {
+          series: {
+            //allowPointSelect: true,
+            point: {
+              events: {
+                click: function (event) {
+                  //location.href = '?' + event.point.serverName + '#serverdetailsview';
+                  //alert('clicked '+ event.point.source_host);
+                  window.open('index.html?' + event.point.source_host + "#serverdetailsview&store-no=" + event.point.storeNum, '_blank');
+                  //http://localhost:10080/dashboard/index.html?ME629ASRFI21#serverdetailsview
+                }
+              }
+            }
+          }
+          },
+
+          series: [{
+              name: 'Basemap',
+              mapData: map,
+              borderColor: '#606060',
+              nullColor: 'rgba(200, 200, 200, 0.2)',
+              showInLegend: false
+          }, {
+              name: 'Separators',
+              type: 'mapline',
+              data: H.geojson(map, 'mapline'),
+              color: '#101010',
+              enableMouseTracking: false,
+              showInLegend: false
+          }, {
+              showInLegend: false,
+              type: 'mapbubble',
+              dataLabels: {
+                  enabled: true,
+                  format: '{point.storeNum}',                  
+                  style:{color:"white"}
+              },
+              name: 'Cities',
+              data: normaljson,
+              minsize: '1%',
+              maxSize: '4%',
+              color: 'green'
+          },{
+              showInLegend: false,
+              type: 'mapbubble',
+              dataLabels: {
+                  enabled: true,
+                  format: '{point.storeNum}',
+                  style:{color:"white"}
+              },
+              name: 'Cities',
+              data: warnjson,
+              minsize: '1%', 
+              maxSize: '4%',
+              color: 'yellow'
+          },
+          {
+              showInLegend: false,
+              type: 'mapbubble',
+              dataLabels: {
+                  enabled: true,
+                  format: '{point.storeNum}',
+                  style:{color:"white"}
+              },
+              name: 'Cities',
+              data: errorjson,
+              minsize: '1%',
+              maxSize: '4%',
+              color: 'red'
+          }]
+      });
+  //});
+
+  // Display custom label with lat/lon next to crosshairs
+  $('#container').mousemove(function (e) {
+      var position;
+
+      if (chart) {
+          if (!chart.lab) {
+              chart.lab = chart.renderer.text('', 0, 0)
+                  .attr({
+                      zIndex: 5
+                  })
+                  .css({
+                      color: '#505050'
+                  })
+                  .add();
+          }
+
+          e = chart.pointer.normalize(e);
+          position = chart.fromPointToLatLon({
+              x: chart.xAxis[0].toValue(e.chartX),
+              y: chart.yAxis[0].toValue(e.chartY)
+          });
+
+          chart.lab.attr({
+              x: e.chartX + 5,
+              y: e.chartY - 22,
+              //text: 'Lat: ' + position.lat.toFixed(2) + '<br>Lon: ' + position.lon.toFixed(2)
+          });
+      }
+  });
+
+  $('#container').mouseout(function () {
+      if (chart && chart.lab) {
+          chart.lab.destroy();
+          chart.lab = null;
+      }
+  });
+
+  } //ends runmap function
+
+  </script>
+ </div>
+ </div>
+  </body>
+  </html>
